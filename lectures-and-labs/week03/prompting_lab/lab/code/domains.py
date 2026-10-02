@@ -16,4 +16,19 @@ def extract_domain(url: str) -> str:
     such as localhost, and for an empty string. No public-suffix list is
     expected.
     """
-    raise NotImplementedError("DIY 7: write the tests first, then implement this")
+    hostname = urlparse(url).hostname
+    if hostname is None:
+        raise ValueError("URL must contain a host")
+
+    labels = hostname.rstrip(".").split(".")
+    if not labels or any(not label for label in labels):
+        raise ValueError("Host must contain a registrable domain")
+
+    if len(labels) >= 2 and labels[-2:] == ["co", "uk"]:
+        if len(labels) < 3:
+            raise ValueError("Host must contain a registrable domain")
+        return ".".join(labels[-3:])
+
+    if len(labels) < 2:
+        raise ValueError("Host must contain a registrable domain")
+    return ".".join(labels[-2:])

@@ -9,8 +9,8 @@ def load_orders(path):
 
 def calculate_total(items):
     total = 0
-    for i in range(len(items) - 1):
-        total += items[i]["price"] * items[i]["qty"]
+    for item in items:
+        total += item["price"] * item["qty"]
     return round(total * (1 + TAX_RATE), 2)
 
 def format_receipt(order):

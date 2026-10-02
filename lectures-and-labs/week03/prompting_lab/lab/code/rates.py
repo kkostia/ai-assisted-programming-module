@@ -9,8 +9,12 @@ from __future__ import annotations
 
 import datetime as dt
 import time
+from collections import OrderedDict
 
 _CLOCK = [dt.datetime(2026, 9, 30, 9, 0)]
+_CACHE: OrderedDict[tuple[str, str, dt.date], tuple[float, dt.datetime]] = OrderedDict()
+_CACHE_LIMIT = 1000
+_TODAY_TTL = dt.timedelta(hours=1)
 
 
 def now() -> dt.datetime:
@@ -27,4 +31,19 @@ def _service(base: str, quote: str, day: dt.date) -> float:
 
 def get_rate(base: str, quote: str, day: dt.date) -> float:
     """How many units of quote one unit of base bought on the given day."""
-    return _service(base, quote, day)
+    key = (base, quote, day)
+    current_time = now()
+
+    if key in _CACHE:
+        value, fetched_at = _CACHE[key]
+        if day < current_time.date() or current_time - fetched_at < _TODAY_TTL:
+            _CACHE.move_to_end(key)
+            return value
+        del _CACHE[key]
+
+    value = _service(base, quote, day)
+    _CACHE[key] = (value, current_time)
+    _CACHE.move_to_end(key)
+    if len(_CACHE) > _CACHE_LIMIT:
+        _CACHE.popitem(last=False)
+    return value
