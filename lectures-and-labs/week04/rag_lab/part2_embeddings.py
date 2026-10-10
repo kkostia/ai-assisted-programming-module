@@ -130,8 +130,8 @@ def generate_embeddings(chunks, model_name=EMBEDDING_MODEL):
     #
     # GitHub Copilot Prompt: "Use sentence-transformers to encode a list of text chunks"
 
-    # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    model = SentenceTransformer(model_name)
+    return model.encode(chunks)
 
 
 def store_in_chromadb(chunks, embeddings, sources, collection_name=COLLECTION):
@@ -170,8 +170,21 @@ def store_in_chromadb(chunks, embeddings, sources, collection_name=COLLECTION):
     #
     # GitHub Copilot Prompt: "Store text chunks, embeddings and per-chunk metadata in a ChromaDB collection"
 
-    # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    client = chromadb.PersistentClient(path="./chroma_db")
+    if any(collection.name == collection_name for collection in client.list_collections()):
+        client.delete_collection(name=collection_name)
+    collection = client.create_collection(
+        name=collection_name,
+        configuration={"hnsw": {"space": "cosine"}},
+    )
+    if chunks:
+        collection.add(
+            documents=chunks,
+            embeddings=embeddings.tolist(),
+            metadatas=[{"source": source} for source in sources],
+            ids=[f"chunk_{index}" for index in range(len(chunks))],
+        )
+    return collection
 
 
 def main():

@@ -1,20 +1,26 @@
 # RAG Lab - results
 
-**Name:** _[Your name]_
-**Date:** _[Date]_
+**Date:** 10 October 2026
 
-Fill this in as you go. The README says what each section is for.
+Measured by running the lab scripts with Python 3.12, all-MiniLM-L6-v2
+and a persistent ChromaDB cosine index. Execution was local on Windows;
+Codespaces was not accessible from this session.
 
 ---
 
 ## Part 1: chunking and embeddings (DIY 1 and 2)
 
-- Documents loaded: ___
-- Chunks produced at 200 words: ___ (shortest ___ words, longest ___ words)
-- Vector dimensionality: ___
-- Did the query vector have the same dimensionality as the chunks? ___
+- Documents loaded: 5 (1,970 whitespace-separated words in total).
+- Chunks produced at 200 words: 14 with 40 words of overlap
+  (shortest 72 words, longest 200 words).
+- Vector dimensionality: 384.
+- Query vector, first five values: `[0.057, 0.040, -0.052, 0.080, -0.100]`.
+- Did the query vector have the same dimensionality as the chunks? Yes, 384.
 
-_What did the overlap check show?_
+Chunk 1 begins "in half, eliminating the half...", which also appears in
+chunk 0. The last 40 words of chunk 0 exactly match the first 40 words of
+chunk 1. Both full chunks were printed. All 14 texts, vectors and source
+filenames were stored in the `cs_knowledge` collection.
 
 ---
 
