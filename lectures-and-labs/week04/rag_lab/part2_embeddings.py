@@ -52,8 +52,11 @@ def load_documents(data_dir="data"):
     #
     # GitHub Copilot Prompt: "Read all text files from a directory and return a sorted list of (filename, content) tuples"
 
-    # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    for filename in sorted(os.listdir(data_dir)):
+        if filename.endswith(".txt"):
+            filepath = os.path.join(data_dir, filename)
+            with open(filepath, "r", encoding="utf-8") as document:
+                documents.append((filename, document.read()))
 
     return documents
 
@@ -88,8 +91,19 @@ def chunk_text(text, chunk_words=DEFAULT_CHUNK_WORDS, overlap_words=DEFAULT_OVER
     #
     # GitHub Copilot Prompt: "Split text into overlapping chunks of N words with M words of overlap"
 
-    # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    if chunk_words < 1:
+        raise ValueError("chunk_words must be at least 1")
+    if not 0 <= overlap_words < chunk_words:
+        raise ValueError("overlap_words must be between 0 and chunk_words - 1")
+
+    words = text.split()
+    start = 0
+    step = chunk_words - overlap_words
+    while start < len(words):
+        chunks.append(" ".join(words[start : start + chunk_words]))
+        if start + chunk_words >= len(words):
+            break
+        start += step
 
     return chunks
 
@@ -203,6 +217,8 @@ def main():
     print(f"Produced {len(all_chunks)} chunks ({args.chunk_words} words, {overlap} overlap)")
     print(f"  shortest: {min(lengths)} words")
     print(f"  longest:  {max(lengths)} words")
+    for index, chunk in enumerate(all_chunks[:2]):
+        print(f"Chunk {index}: {chunk}")
     if len(all_chunks) > 1:
         opening = " ".join(all_chunks[1].split()[:5])
         print(f'Overlap check: chunk 1 begins "{opening}..." -- those words also sit '
