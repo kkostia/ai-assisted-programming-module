@@ -76,11 +76,33 @@ requires a source for supported answers and no extra text for a refusal.
 
 | Chunk size | Right chunk found? | Noise | Notes |
 |------------|--------------------|-------|-------|
-| 50 words   |                    |       |       |
-| 200 words  |                    |       |       |
-| 800 words  |                    |       |       |
+| 50 words | Yes, for both variable queries | Low in the top hit; some repeated text and control-flow material in the other hits | 66 chunks, 22-50 words. Top scores 0.5778 / 0.4500; 150 words across three hits per query. The definition is split between neighbouring chunks. |
+| 200 words | Yes, for both variable queries | Medium: the definition arrives with control structures, functions and an unrelated database chunk | 14 chunks, 32-200 words. Top scores 0.4197 / 0.3088; 512 words across three hits per query. |
+| 800 words | Yes, for both variable queries | High: whole programming, database and data-structure documents | 5 chunks, 292-447 words. Top scores 0.4197 / 0.3088; 1,108 words across three hits per query. Each document fits in one chunk. |
 
-_One sentence on what goes wrong at each extreme:_
+All three rebuilds used **20 words of overlap** and were followed by
+`python part3_retrieval.py`. Noise is a qualitative assessment of the
+returned text; the word totals above measure the unfiltered three hits,
+including overlap, before the separate 500-token context budget.
+
+At 50 words, chunks can begin or end mid-sentence and separate a
+definition from its supporting example; at 800 words, each hit includes a
+whole document with many topics unrelated to the question.
+
+For sourdough, the three scores were:
+
+- 50 words: 0.1286, 0.1175, 0.0928 (two programming chunks and an
+  algorithms chunk).
+- 200 words: 0.0878, 0.0863, 0.0524 (algorithms, web development,
+  algorithms).
+- 800 words: 0.0878, 0.0863, 0.0367 (algorithms, web development,
+  programming).
+
+None passed 0.20 at any size. At 200 words with overlap 20, the second
+hit for the paraphrased variable question scored 0.1992: it prints as
+0.20 but does not pass the threshold. The index was restored with
+`python part2_embeddings.py --chunk-words 200` (default overlap 40)
+before the generation and long-context comparison.
 
 ---
 
