@@ -26,15 +26,27 @@ filenames were stored in the `cs_knowledge` collection.
 
 ## Part 2: retrieval (DIY 3 and 4)
 
-**"what is a variable"** - top hit, score and source: ___
+**"what is a variable"** - top hit: "Introduction to Programming
+Programming is the...", score 0.42, `introduction_to_programming.txt`.
+The next hits were the second programming chunk (0.26) and the first
+database chunk (0.21); all three passed the 0.20 threshold.
 
-**"how can my code remember a number for later"** - top hit, score and source: ___
+**"how can my code remember a number for later"** - the same top chunk,
+score 0.31, `introduction_to_programming.txt`. The next hits were the same
+second programming chunk (0.25) and database chunk (0.13); two passed
+the 0.20 threshold.
 
-_Same meaning, different words: did both queries find the same chunk?_
+Yes. Both queries returned the same three chunks in the same order even
+though their wording differs. Both 500-token context windows used about
+321 tokens under the script's character-based estimate.
 
-**"how do I bake sourdough"** - what came back, and with what scores: ___
+**"how do I bake sourdough"** - `algorithms_overview.txt` (0.09),
+`web_development_intro.txt` (0.09) and `introduction_to_programming.txt`
+(0.04). None passed the 0.20 threshold.
 
-_One sentence on what a retrieval system does when nothing is relevant:_
+Nearest-neighbour search still returns its closest chunks when none is
+relevant; low scores and a calibrated threshold are how we recognise
+that the corpus contains no useful answer.
 
 ---
 
