@@ -53,11 +53,22 @@ that the corpus contains no useful answer.
 ## Part 3: grounding (DIY 5)
 
 **Q:** What is a variable?
-**A:** ___
-**Source it cited:** ___
+**A:** A variable is like a labeled box that stores information
+[source: introduction_to_programming.txt].
+**Source it cited:** `introduction_to_programming.txt`.
+
+The retrieved files were `introduction_to_programming.txt` and
+`database_fundamentals.txt`. The linked-list question also received an
+answer grounded in the retrieved text, citing `data_structures_basics.txt`.
 
 **Q:** How do I bake sourdough?
-**A:** ___ (did it decline?)
+**A:** I don't know - the provided context does not cover this.
+
+It declined with the exact required sentence and no citation. Its
+retrieved files were `algorithms_overview.txt` and `web_development_intro.txt`.
+These are actual responses from `gemini-3.5-flash-lite`, using the lab's
+configured OpenAI-compatible Gemini endpoint. The prompt explicitly
+requires a source for supported answers and no extra text for a refusal.
 
 ---
 
