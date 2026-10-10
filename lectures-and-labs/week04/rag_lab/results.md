@@ -104,33 +104,97 @@ hit for the paraphrased variable question scored 0.1992: it prints as
 `python part2_embeddings.py --chunk-words 200` (default overlap 40)
 before the generation and long-context comparison.
 
+At 800 words, the printed overlap check is False because chunks 0 and 1
+come from different documents; there are no neighbouring chunks within
+any one document at this size, so overlap does not apply.
+
 ---
 
 ## Part 5: long context versus retrieval (DIY 7)
 
 ```text
-Whole corpus size: ................. [approx tokens]
-Question asked: .................... [your question]
-  RAG answer: ...................... [response]
-  Whole-corpus answer: ............. [response]
-Which was better? .................. [RAG / long context / no difference]
-At what corpus size would this flip? [your reasoning]
+Whole corpus size: 2626 approximate tokens (1970 words / 0.75).
+Question asked: What is a variable?
+  RAG answer: A variable is like a labeled box that stores information [source: introduction_to_programming.txt].
+  Whole-corpus answer: A variable is like a labeled box that stores information [source: introduction_to_programming.txt].
+Which was better? No difference; the answers are identical.
+At what corpus size would this flip? When the whole corpus exceeds the context budget or sending it for every question becomes too expensive. For example, a 10,000-token budget for documents allows roughly 7,500 words; larger corpora would need selection or retrieval under that budget. This is a conditional budget, not the Gemini model's context limit.
 ```
 
-Repeat for each of the three questions if the answers differed.
+**Question asked:** How do linked lists work?
+
+**RAG answer:** Linked lists are a linear data structure where elements
+are not stored contiguously. Instead, each element (called a node)
+contains data and a reference (or link) to the next node. There are two
+main types: singly linked lists where each node points to the next, and
+doubly linked lists where nodes point both forward and backward
+[source: data_structures_basics.txt].
+
+**Whole-corpus answer:** A linked list is a linear data structure where
+elements are not stored contiguously. Instead, each element (called a
+node) contains data and a reference (or link) to the next node. There are
+two main types: singly linked lists where each node points to the next,
+and doubly linked lists where nodes point both forward and backward.
+Linked lists excel at insertions and deletions because you only need to
+update pointers, not shift all elements like in an array
+[source: data_structures_basics.txt].
+
+**Which was better?** Long context was slightly more complete in this run:
+it also explained the insertion/deletion advantage. Both answers were
+correctly grounded and cited the same file; one run does not establish a
+general quality advantage.
+
+**Question asked:** What is HTML?
+
+**RAG answer:** HTML (HyperText Markup Language) provides the structure and
+content of web pages, using tags to define elements like headings,
+paragraphs, links, and images [source: web_development_intro.txt].
+
+**Whole-corpus answer:** HTML (HyperText Markup Language) provides the
+structure and content of web pages [source: web_development_intro.txt].
+
+**Which was better?** Both answered correctly; RAG included more detail
+about tags in this run. The simpler whole-corpus approach still answered
+the question without needing an embedding model or vector database.
+
+The comparison used the same questions, model and `GROUNDING_RULES` in
+both methods. RAG used the restored 200-word/40-overlap index and top-k 3;
+the whole-corpus prompt concatenated all five source-labelled documents.
+The 2,626-token estimate counts document text only, excluding source
+labels, instructions and the question. RAG's response cap was 500 tokens
+and the whole-corpus cap was 300, as supplied in the lab.
+
+The supplied top-k experiment also measured 266, 709 and 1,072 approximate
+context tokens for k=1, 3 and 5. At k=1 the source was programming; k=3
+added databases; k=5 also added data structures. More retrieved text was
+not automatically more relevant to the variable question.
 
 **The question the corpus cannot answer** (sourdough):
 
-- No context: ___
-- Whole corpus: ___
-- RAG: ___
+- No context: the model supplied a five-step sourdough recipe: feed a
+  starter, mix dough, ferment, shape and refrigerate, then bake. It did
+  not decline and relied on knowledge outside this corpus.
+- Whole corpus: "I don't know - the provided context does not cover this."
+- RAG: "I don't know - the provided context does not cover this."
 
-_Which of the three declined, and what made the difference?_
+Both grounded approaches declined with the exact required sentence and
+no citation. The explicit instruction to use only the provided context
+and to permit "I don't know" made the difference; retrieval alone did
+not, because it still returned unrelated chunks.
 
 ---
 
 ## Reflection
 
-_When would you build retrieval, and when would you just paste everything?_
+For this five-document, 1,970-word corpus, the whole text fits comfortably
+in a single prompt and gave correct, cited answers, so retrieval adds
+infrastructure without a demonstrated need. Retrieval becomes useful
+when the corpus grows beyond the available context budget, sending all
+documents repeatedly costs too much, or questions need targeted access
+to frequently updated sources. Its usefulness depends on measured
+retrieval quality as well as size.
 
-_What surprised you?_
+The paraphrased variable question found the same top chunk as the direct
+question, but an entirely unrelated sourdough question still returned
+three chunks. Another useful result was that a score displayed as 0.20
+could fail a 0.20 threshold because the unrounded score was 0.1992.
