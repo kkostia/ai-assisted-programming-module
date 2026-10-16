@@ -1,7 +1,7 @@
 import json
 import sys
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 import urllib.request
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -25,8 +25,6 @@ def log_message(msg_type, data):
     print(f"{YELLOW}{'─'*60}{RESET}\n", file=sys.stderr)
     sys.stderr.flush()
 
-# TODO: Implement these helper functions
-
 def fetch_top_stories(count: int = 5) -> list:
     """
     Fetch top story IDs from Hacker News API
@@ -41,13 +39,18 @@ def fetch_top_stories(count: int = 5) -> list:
     
     Hint: This returns a large list of IDs. You need to slice it to get the top N.
     """
-    # TODO: Implement this function
-    # 1. Make HTTP request to the API
-    # 2. Parse JSON response
-    # 3. Return first 'count' items (limited to 10)
-    # 4. Handle errors gracefully
-    
-    pass  # Remove this and add your implementation
+    if type(count) is not int or count < 1:
+        raise ValueError("count must be a positive integer")
+    try:
+        with urllib.request.urlopen(
+            "https://hacker-news.firebaseio.com/v0/topstories.json", timeout=10
+        ) as response:
+            story_ids = json.load(response)
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"Could not fetch top stories: {exc}") from exc
+    if not isinstance(story_ids, list):
+        raise ValueError("The Hacker News API did not return a list of story IDs")
+    return story_ids[:min(count, 10)]
 
 
 def fetch_story_details(story_id: int) -> dict:
@@ -69,15 +72,27 @@ def fetch_story_details(story_id: int) -> dict:
     - url: Link to the story (might be None for Ask HN posts)
     - time: Unix timestamp
     """
-    # TODO: Implement this function
-    # 1. Make HTTP request to the API with the story_id
-    # 2. Parse JSON response
-    # 3. Extract relevant fields
-    # 4. Format time nicely (convert from Unix timestamp)
-    # 5. Handle missing fields (e.g., some posts don't have URLs)
-    # 6. Handle errors (invalid ID, network issues)
-    
-    pass  # Remove this and add your implementation
+    if type(story_id) is not int or story_id < 1:
+        raise ValueError("story_id must be a positive integer")
+    try:
+        with urllib.request.urlopen(
+            f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json", timeout=10
+        ) as response:
+            story = json.load(response)
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"Could not fetch story {story_id}: {exc}") from exc
+    if not story or story.get("deleted") or story.get("dead"):
+        raise ValueError(f"Story {story_id} was not found")
+    return {
+        "title": story.get("title", "Untitled"),
+        "author": story.get("by", "Unknown"),
+        "score": story.get("score", 0),
+        "url": story.get("url") or f"https://news.ycombinator.com/item?id={story_id}",
+        "time": (
+            datetime.fromtimestamp(story["time"], timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+            if story.get("time") is not None else "Unknown"
+        ),
+    }
 
 
 # Create the MCP server
@@ -101,13 +116,28 @@ async def list_tools() -> list[Tool]:
     """
     log_message("📋 LIST TOOLS REQUEST", {"method": "tools/list"})
     
-    # TODO: Define your tools here
     tools = [
-        # TODO: Add get_top_stories tool definition
-        # Parameters: count (number, optional, default 5, max 10)
-        
-        # TODO: Add get_story_details tool definition
-        # Parameters: story_id (number, required)
+        Tool(
+            name="get_top_stories",
+            description="Get the top Hacker News story IDs. Use to find current popular stories, then get_story_details for each ID.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "count": {"type": "integer", "default": 5, "minimum": 1, "maximum": 10},
+                },
+            },
+        ),
+        Tool(
+            name="get_story_details",
+            description="Get a Hacker News story's title, author, score, URL and time. Use with a story ID from get_top_stories.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "story_id": {"type": "integer", "minimum": 1},
+                },
+                "required": ["story_id"],
+            },
+        ),
     ]
     
     log_message("✅ LIST TOOLS RESPONSE", {
@@ -116,7 +146,7 @@ async def list_tools() -> list[Tool]:
     
     return tools
 
-@app.call_tool()
+@app.call_tool(validate_input=False)
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     """
     Handle tool execution.
@@ -135,36 +165,35 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         "arguments": arguments
     })
     
-    # TODO: Implement tool execution logic
-    
-    if name == "get_top_stories":
-        # TODO: 
-        # 1. Get 'count' from arguments (default to 5 if not provided)
-        # 2. Validate count (1-10)
-        # 3. Call fetch_top_stories()
-        # 4. Format the response nicely
-        # 5. Return as TextContent
-        
-        pass  # Remove this and add your implementation
-    
-    elif name == "get_story_details":
-        # TODO:
-        # 1. Get 'story_id' from arguments
-        # 2. Validate story_id (must be a positive number)
-        # 3. Call fetch_story_details()
-        # 4. Format the response nicely with all details
-        # 5. Handle errors (invalid ID, story not found)
-        # 6. Return as TextContent
-        
-        pass  # Remove this and add your implementation
-    
-    else:
-        # Unknown tool - this should never happen if tools are defined correctly
-        raise ValueError(f"Unknown tool: {name}")
-    
-    # TODO: Remove this placeholder and implement the returns above
-    result = [TextContent(type="text", text="Not implemented yet")]
-    log_message("✅ TOOL CALL RESPONSE", {"status": "not_implemented"})
+    # Validate here so invalid arguments receive an explanatory Error: result.
+    try:
+        if name == "get_top_stories":
+            count = arguments.get("count", 5)
+            if type(count) is not int or not 1 <= count <= 10:
+                raise ValueError("count must be an integer from 1 to 10")
+            story_ids = fetch_top_stories(count)
+            text = f"Top {len(story_ids)} Hacker News story IDs:\n" + "\n".join(
+                f"{index}. {story_id}" for index, story_id in enumerate(story_ids, 1)
+            )
+        elif name == "get_story_details":
+            story_id = arguments.get("story_id")
+            if type(story_id) is not int or story_id < 1:
+                raise ValueError("story_id is required and must be a positive integer")
+            story = fetch_story_details(story_id)
+            text = (
+                f"Title: {story['title']}\n"
+                f"Author: {story['author']}\n"
+                f"Score: {story['score']}\n"
+                f"URL: {story['url']}\n"
+                f"Time: {story['time']}"
+            )
+        else:
+            raise ValueError(f"Unknown tool: {name}")
+    except ValueError as exc:
+        text = f"Error: {exc}"
+
+    result = [TextContent(type="text", text=text)]
+    log_message("✅ TOOL CALL RESPONSE", {"text": text})
     return result
 
 
